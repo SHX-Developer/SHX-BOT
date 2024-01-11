@@ -1,1 +1,1 @@
-token = '5564467831:AAGhjPjo31gl6rxKj4EMBSuq7e_3HwreWns'
+token = 'TELEGRAM_API_TOKEN'
