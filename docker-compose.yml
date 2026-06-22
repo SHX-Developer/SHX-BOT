@@ -8,3 +8,9 @@ services:
       BOT_TOKEN: ${BOT_TOKEN}
       ADMIN_IDS: ${ADMIN_IDS}
       DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
