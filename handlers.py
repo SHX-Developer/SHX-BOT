@@ -305,6 +305,7 @@ async def search(message: Message, bot: Bot, state: FSMContext):
 async def process_search(message: Message, bot: Bot, state: FSMContext):
     user_id = message.from_user.id
     query = message.text.strip()
+    search_pattern = f'%{query}%'
 
     language = await get_user_language_row(user_id)
     if query == '🚫 Отменить поиск' or query == '🚫 Cancel search':
@@ -334,7 +335,9 @@ async def process_search(message: Message, bot: Bot, state: FSMContext):
         found_text = '✅ Track or artist found!'
         menu_button = kb.en_menu
 
-    russian = await fetchall_query('SELECT * FROM russian WHERE artist = ? OR name = ?', (query, query))
+    russian = await fetchall_query(
+        'SELECT id, artist, name, path FROM russian WHERE artist ILIKE ? OR name ILIKE ? ORDER BY artist, name LIMIT 10',
+        (search_pattern, search_pattern))
     if russian:
         for row in russian:
             ru_button = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❤️ Добавить в плейлист", callback_data=f"ru_add_playlist_{row[0]}")]])
@@ -362,7 +365,9 @@ async def process_search(message: Message, bot: Bot, state: FSMContext):
             await state.clear()
         return
     
-    english = await fetchall_query('SELECT * FROM english WHERE artist = ? OR name = ?', (query, query))
+    english = await fetchall_query(
+        'SELECT id, artist, name, path FROM english WHERE artist ILIKE ? OR name ILIKE ? ORDER BY artist, name LIMIT 10',
+        (search_pattern, search_pattern))
     if english:
         for row in english:
             ru_button = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❤️ Добавить в плейлист", callback_data=f"en_add_playlist_{row[0]}")]])
@@ -460,7 +465,9 @@ async def playlist(message: Message, bot: Bot):
         text = txt.en_playlist_text
         empty_text = txt.en_empty_playlist_text
     
-    data = await fetchall_query('SELECT * FROM playlists WHERE user_id = ?', (user_id,))
+    data = await fetchall_query(
+        'SELECT id, user_id, name, path FROM playlists WHERE user_id = ? ORDER BY id DESC',
+        (user_id,))
     if not data:
         await bot.send_message(
             chat_id=user_id, 
@@ -494,7 +501,9 @@ async def send_playlist_track(call: CallbackQuery, bot: Bot):
         text = txt.en_links_text
         button = en_button
 
-    data = await fetchone_query('SELECT * FROM playlists WHERE id = ?', (track_id,))
+    data = await fetchone_query(
+        'SELECT id, user_id, name, path FROM playlists WHERE id = ? AND user_id = ?',
+        (track_id, user_id))
     if data is None:
         if language[0] == 'ru':
             not_found_text = txt.ru_no_track_found_text
@@ -547,7 +556,7 @@ async def remove_playlist(call: CallbackQuery, bot: Bot):
     message_id = call.message.message_id
     track_id = int(call.data.split('remove_playlist_')[-1])
 
-    await execute_query('DELETE FROM playlists WHERE id = ?', (track_id,))
+    await execute_query('DELETE FROM playlists WHERE id = ? AND user_id = ?', (track_id, user_id))
 
     language = await get_user_language_row(user_id)
     if language[0] == 'ru':
@@ -749,6 +758,7 @@ async def back(message: Message, bot: Bot):
 async def text(message: Message, bot: Bot):
     user_id = message.from_user.id
     query = message.text.strip()
+    search_pattern = f'%{query}%'
 
     language = await get_user_language_row(user_id)
     if language[0] == 'ru':
@@ -757,7 +767,9 @@ async def text(message: Message, bot: Bot):
         text = 'Unknown command. Please choose an option from the menu.'
 
 
-    russian = await fetchall_query('SELECT * FROM russian WHERE artist = ?', (query,))
+    russian = await fetchall_query(
+        'SELECT id, artist, name, path FROM russian WHERE artist ILIKE ? ORDER BY name',
+        (search_pattern,))
     if russian:
         for row in russian:
             ru_button = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❤️ Добавить в плейлист", callback_data=f"ru_add_playlist_{row[0]}")]])
@@ -778,7 +790,9 @@ async def text(message: Message, bot: Bot):
                 reply_markup=button)
         return
     
-    english = await fetchall_query('SELECT * FROM english WHERE artist = ?', (query,))
+    english = await fetchall_query(
+        'SELECT id, artist, name, path FROM english WHERE artist ILIKE ? ORDER BY name',
+        (search_pattern,))
     if english:
         for row in english:
             ru_button = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❤️ Добавить в плейлист", callback_data=f"en_add_playlist_{row[0]}")]])
@@ -807,9 +821,11 @@ async def add_playlist(call: CallbackQuery, bot: Bot):
     await call.answer()
     user_id = call.from_user.id
     message_id = call.message.message_id
-    query = call.data.split('ru_add_playlist_')[-1]
+    query = int(call.data.split('ru_add_playlist_')[-1])
 
-    data = await fetchone_query('SELECT * FROM russian WHERE id = ?', (query,))
+    data = await fetchone_query('SELECT id, artist, name, path FROM russian WHERE id = ?', (query,))
+    if data is None:
+        return
     track_id = data[0]; artist = data[1]; name = data[2]; path = data[3]; fullname = '{} - {}'.format(artist, name)
     await execute_query('INSERT INTO playlists (user_id, name, path) VALUES (?, ?, ?)', (user_id, fullname, path))
     
@@ -829,9 +845,11 @@ async def add_playlist(call: CallbackQuery, bot: Bot):
     await call.answer()
     user_id = call.from_user.id
     message_id = call.message.message_id
-    query = call.data.split('en_add_playlist_')[-1]
+    query = int(call.data.split('en_add_playlist_')[-1])
 
-    data = await fetchone_query('SELECT * FROM english WHERE id = ?', (query,))
+    data = await fetchone_query('SELECT id, artist, name, path FROM english WHERE id = ?', (query,))
+    if data is None:
+        return
     track_id = data[0]; artist = data[1]; name = data[2]; path = data[3]; fullname = '{} - {}'.format(artist, name)
     await execute_query('INSERT INTO playlists (user_id, name, path) VALUES (?, ?, ?)', (user_id, fullname, path))
     
