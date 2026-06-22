@@ -46,6 +46,9 @@ def _convert_placeholders(query: str) -> str:
 async def init_db() -> asyncpg.Pool:
     global _pool
 
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is not set. Add your Dokploy Postgres URL to env.")
+
     if _pool is not None:
         return _pool
 

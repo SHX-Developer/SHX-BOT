@@ -1,6 +1,7 @@
 # SHX BOT
 
 Telegram bot on `aiogram` with PostgreSQL, SQL migrations, Docker Compose and CI.
+The app expects a PostgreSQL database URL from the environment.
 
 ## Local Run
 
@@ -30,7 +31,7 @@ The bot container applies migrations automatically before polling starts.
 
 ## Import Old SQLite Data
 
-After Postgres is running and `.env` is configured:
+After Postgres is available and `.env` is configured:
 
 ```bash
 python -m scripts.import_sqlite_to_postgres --sqlite ShaHriXMusicBot.db
@@ -38,11 +39,10 @@ python -m scripts.import_sqlite_to_postgres --sqlite ShaHriXMusicBot.db
 
 ## VPS Deploy
 
-1. Install Docker and Docker Compose plugin.
-2. Clone the repository on the server.
-3. Create `.env` from `.env.example`.
-4. Run `docker compose up -d --build`.
-5. Check logs with `docker compose logs -f bot`.
+1. Create or connect a PostgreSQL database.
+2. Set `BOT_TOKEN`, `ADMIN_IDS` and `DATABASE_URL`.
+3. Deploy `docker-compose.yml`.
+4. Check logs for `Bot polling started`.
 
 ## CI
 

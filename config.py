@@ -6,10 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN", "")
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://shx_bot:shx_bot@localhost:5432/shx_bot",
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 ADMIN_IDS = {
     int(admin_id)
@@ -21,3 +18,5 @@ ADMIN_IDS = {
 def validate_bot_config() -> None:
     if not TOKEN:
         raise RuntimeError("BOT_TOKEN is not set. Copy .env.example to .env and fill it.")
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is not set. Add your Dokploy Postgres URL to env.")
