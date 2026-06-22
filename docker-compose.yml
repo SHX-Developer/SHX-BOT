@@ -20,7 +20,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-shx_bot}:${POSTGRES_PASSWORD:-shx_bot}@postgres:5432/${POSTGRES_DB:-shx_bot}
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
       postgres:
         condition: service_healthy

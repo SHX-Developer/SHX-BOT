@@ -1,4 +1,7 @@
 import asyncio
+from datetime import date as date_type
+from datetime import time as time_type
+from datetime import datetime
 import logging
 import re
 from pathlib import Path
@@ -14,6 +17,18 @@ logger = logging.getLogger(__name__)
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 _pool: asyncpg.Pool | None = None
 _pool_lock = asyncio.Lock()
+
+
+def _parse_date(value: str | date_type) -> date_type:
+    if isinstance(value, date_type):
+        return value
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def _parse_time(value: str | time_type) -> time_type:
+    if isinstance(value, time_type):
+        return value
+    return datetime.strptime(value, "%H:%M:%S").time()
 
 
 def _convert_placeholders(query: str) -> str:
@@ -163,8 +178,8 @@ async def add_basic_data(
                 chat_id,
                 chat_type,
                 is_premium,
-                date,
-                time,
+                _parse_date(date),
+                _parse_time(time),
             )
             await conn.execute(
                 """
