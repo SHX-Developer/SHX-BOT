@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: shx_bot
+          POSTGRES_USER: shx_bot
+          POSTGRES_PASSWORD: shx_bot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shx_bot -d shx_bot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      BOT_TOKEN: 123456789:test_token_for_ci
+      ADMIN_IDS: 284929331
+      DATABASE_URL: postgresql://shx_bot:shx_bot@localhost:5432/shx_bot
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile Python files
+        run: python -m compileall -q main.py database.py handlers.py keyboards.py constants.py texts.py admin scripts
+
+      - name: Apply migrations
+        run: python -m scripts.migrate
+
+      - name: Build Docker image
+        run: docker build -t shx-bot:ci .
